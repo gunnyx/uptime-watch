@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Uptime Watch</title>
+<style>
+:root{
+  --bg:#F2F5F1;--surface:#FFFFFF;--border:#CBD5CE;--text:#16211A;--muted:#4D5E54;
+  --accent:#0B5C6B;--on-accent:#FFFFFF;--success:#1B6B38;--warning:#865400;--danger:#B3261E;--grey:#5A6660;
+  --serif:"Iowan Old Style","Palatino Linotype",Charter,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0E1411;--surface:#17211B;--border:#2C3A32;--text:#E7EEE9;--muted:#A3B3AA;
+    --accent:#6CCBDD;--on-accent:#0E1411;--success:#62D08C;--warning:#E5B04A;--danger:#FF8F86;--grey:#94A39A;
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:1rem/1.5 var(--sans)}
+main{max-width:960px;margin:0 auto;padding:16px}
+h1{font:600 1.25rem/1.3 var(--serif);margin:0 0 16px}
+h2{font-size:1.125rem;margin:0 0 12px}
+.small{font-size:.875rem}
+.muted{color:var(--muted)}
+.banner{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px;
+  background:var(--surface);border:1px solid var(--border);border-left:12px solid var(--grey);
+  padding:16px;margin-bottom:16px;border-radius:0}
+.banner[data-state=up]{border-left-color:var(--success)}
+.banner[data-state=down]{border-left-color:var(--danger)}
+.banner[data-state=stale]{border-left-color:var(--warning)}
+.banner p{margin:0}
+#banner-text{font:600 1.75rem/1.2 var(--serif);overflow-wrap:anywhere}
+#updated{color:var(--muted);font-size:.875rem}
+.notice{border:1px solid var(--warning);border-left:6px solid var(--warning);color:var(--warning);
+  background:var(--surface);padding:12px 16px;margin:0 0 16px;border-radius:6px;font-weight:600}
+[hidden]{display:none !important}
+table{width:100%;border-collapse:separate;border-spacing:0 8px}
+thead{position:absolute;left:-9999px}
+tbody tr{display:block;background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--grey);
+  border-radius:6px;padding:12px;margin-bottom:8px}
+tbody tr:hover{border-color:var(--muted)}
+tbody tr[data-state=up]{border-left-color:var(--success)}
+tbody tr[data-state=down]{border-left-color:var(--danger)}
+td{display:flex;justify-content:space-between;gap:12px;padding:2px 0;font-variant-numeric:tabular-nums}
+td::before{content:attr(data-label);color:var(--muted);font-size:.875rem;flex:none}
+td.c-name{font-weight:700;overflow-wrap:anywhere;justify-content:flex-start}
+td.c-name::before,td.c-status::before{content:none}
+td.c-status{justify-content:flex-start}
+td>span.val{text-align:right;overflow-wrap:anywhere}
+td.c-name>span.val{text-align:left}
+.errtext{display:block;color:var(--danger);font-size:.875rem;overflow-wrap:anywhere;max-width:70ch;margin:4px 0 0}
+.nowrap{white-space:nowrap}
+.badge{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:0 10px;border:1.5px solid var(--grey);
+  color:var(--grey);border-radius:6px;background:var(--surface);font-weight:600;font-size:.875rem}
+.badge[data-state=up]{border-color:var(--success);color:var(--success)}
+.badge[data-state=down]{border-color:var(--danger);color:var(--danger)}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:16px;margin-bottom:16px}
+.skeleton td{height:20px}
+.skeleton span{display:block;height:16px;width:60%;background:var(--border);border-radius:4px}
+button,input,select{font:inherit;color:inherit}
+button{min-height:44px;min-width:44px;padding:0 16px;border:1px solid var(--accent);border-radius:6px;
+  background:var(--surface);color:var(--accent);font-weight:600;cursor:pointer;transition:background-color .12s,color .12s}
+button.primary{background:var(--accent);color:var(--on-accent)}
+button.danger{border-color:var(--danger);color:var(--danger)}
+button:hover{background:color-mix(in srgb,var(--surface) 92%,var(--text))}
+button.primary:hover{background:color-mix(in srgb,var(--accent) 92%,var(--text))}
+button[disabled],button[aria-busy=true]{opacity:.6;cursor:default}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+td.actions-cell::before{content:none}
+.toolbar{margin-bottom:16px}
+label{display:block;font-weight:600;margin-bottom:4px}
+input,select{width:100%;min-height:44px;font-size:16px;padding:0 12px;border:1px solid var(--muted);border-radius:6px;
+  background:var(--surface)}
+input:hover,select:hover{border-color:var(--text)}
+input[aria-invalid=true]{border:2px solid var(--danger)}
+.field{margin-bottom:12px}
+.fielderr{color:var(--danger);font-size:.875rem;margin:4px 0 0}
+.formgrid{display:block}
+.formbtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.formerr{color:var(--danger);font-weight:600;margin:0 0 8px}
+.hint{font-size:.875rem;color:var(--muted);margin:4px 0 0}
+.empty{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:16px}
+@media (min-width:720px){
+  main{padding:32px}
+  #banner-text{font-size:2.25rem}
+  .banner{align-items:center}
+  thead{position:static}
+  th{text-align:left;font-weight:600;font-size:.875rem;white-space:nowrap;color:var(--muted);padding:4px 12px}
+  th.num,td.num{text-align:right}
+  tbody tr{display:table-row;padding:0}
+  tbody tr{border:0}
+  tbody td{display:table-cell;padding:12px;background:var(--surface);border-top:1px solid var(--border);
+    border-bottom:1px solid var(--border);vertical-align:top}
+  tbody td:first-child{border-left:4px solid var(--grey);border-top-left-radius:6px;border-bottom-left-radius:6px}
+  tbody tr[data-state=up] td:first-child{border-left-color:var(--success)}
+  tbody tr[data-state=down] td:first-child{border-left-color:var(--danger)}
+  tbody td:last-child{border-right:1px solid var(--border);border-top-right-radius:6px;border-bottom-right-radius:6px}
+  tbody tr:hover td{border-top-color:var(--muted);border-bottom-color:var(--muted)}
+  td::before{content:none}
+  td.c-name{font-weight:700}
+  td.num{text-align:right}
+  td.nowrap{white-space:nowrap}
+  td>span.val{text-align:inherit}
+  .actions{margin-top:0}
+  .formgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important;animation:none !important}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Uptime Watch</h1>
+  <section id="banner" class="banner" data-state="loading" aria-live="polite">
+    <p id="banner-text">Checking...</p>
+    <p id="updated"></p>
+  </section>
+  <p id="notice" class="notice" role="alert" hidden></p>
+  <section id="manage" class="toolbar" hidden>
+    <button type="button" id="add-btn" class="primary">Add target</button>
+    <form id="token-panel" class="panel" hidden novalidate>
+      <div class="field">
+        <label for="f-token">Admin token</label>
+        <input id="f-token" type="password" autocomplete="off" aria-describedby="token-msg">
+        <p id="token-msg" class="hint" role="status"></p>
+      </div>
+      <div class="formbtns">
+        <button type="submit" class="primary">Save</button>
+        <button type="button" id="token-cancel">Cancel</button>
+      </div>
+    </form>
+    <form id="target-form" class="panel" hidden novalidate>
+      <h2 id="form-title">Add target</h2>
+      <p id="form-error" class="formerr" role="alert" hidden></p>
+      <div class="formgrid">
+        <div class="field"><label for="f-name">Name</label>
+          <input id="f-name" type="text" maxlength="64" autocomplete="off" aria-describedby="e-name">
+          <p class="fielderr" id="e-name" hidden></p></div>
+        <div class="field"><label for="f-type">Type</label>
+          <select id="f-type" aria-describedby="e-type"><option value="http">http</option><option value="tcp">tcp</option></select>
+          <p class="fielderr" id="e-type" hidden></p></div>
+        <div class="field" data-for="http"><label for="f-url">URL</label>
+          <input id="f-url" type="url" inputmode="url" autocomplete="off" aria-describedby="h-url e-url">
+          <p class="hint" id="h-url">Start with the http or https scheme, then the host, e.g. example.com/health.</p>
+          <p class="fielderr" id="e-url" hidden></p></div>
+        <div class="field" data-for="tcp"><label for="f-host">Host</label>
+          <input id="f-host" type="text" autocomplete="off" aria-describedby="e-host">
+          <p class="fielderr" id="e-host" hidden></p></div>
+        <div class="field" data-for="tcp"><label for="f-port">Port</label>
+          <input id="f-port" type="number" min="1" max="65535" inputmode="numeric" aria-describedby="e-port">
+          <p class="fielderr" id="e-port" hidden></p></div>
+        <div class="field"><label for="f-interval">Interval (seconds, min 5)</label>
+          <input id="f-interval" type="number" min="5" value="60" inputmode="numeric" aria-describedby="e-interval">
+          <p class="fielderr" id="e-interval" hidden></p></div>
+        <div class="field" data-for="http"><label for="f-status">Expected status</label>
+          <input id="f-status" type="number" min="100" max="599" value="200" inputmode="numeric" aria-describedby="e-expected_status">
+          <p class="fielderr" id="e-expected_status" hidden></p></div>
+      </div>
+      <div class="formbtns">
+        <button type="submit" id="form-save" class="primary">Save</button>
+        <button type="button" id="form-cancel">Cancel</button>
+      </div>
+    </form>
+  </section>
+  <section aria-label="Targets">
+    <div id="empty" class="empty" hidden></div>
+    <table id="targets">
+      <thead><tr>
+        <th scope="col">Status</th><th scope="col">Name</th><th scope="col">Type</th><th scope="col">Source</th>
+        <th scope="col" class="num">Latency</th><th scope="col" class="num">24h uptime</th>
+        <th scope="col">Last check</th><th scope="col" id="th-actions" hidden>Actions</th>
+      </tr></thead>
+      <tbody id="rows">
+        <tr class="skeleton"><td><span></span></td></tr>
+        <tr class="skeleton"><td><span></span></td></tr>
+        <tr class="skeleton"><td><span></span></td></tr>
+      </tbody>
+    </table>
+  </section>
+</main>
+<script>
+(function () {
+  'use strict';
+  var REFRESH_MS = 15000;
+  var GLYPH = {up: '●', down: '▲', unknown: '○', paused: '❚❚'};
+  var LABEL = {up: 'Up', down: 'Down', unknown: 'Unknown', paused: 'Paused'};
+  var lastData = null;
+  var lastOk = null;
+
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) { e.className = cls; }
+    if (text !== undefined && text !== null) { e.textContent = text; }
+    return e;
+  }
+  function clear(node) { while (node.firstChild) { node.removeChild(node.firstChild); } }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function clock(d) { return pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()); }
+  var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  function when(iso) {
+    if (!iso) { return 'never'; }
+    var d = new Date(iso);
+    return isNaN(d.getTime()) ? iso : MONTHS[d.getMonth()] + ' ' + d.getDate() + ', ' + clock(d);
+  }
+
+  function badge(state) {
+    var b = el('span', 'badge');
+    b.setAttribute('data-state', state);
+    b.appendChild(el('span', null, GLYPH[state] || GLYPH.unknown));
+    b.appendChild(el('span', null, LABEL[state] || 'Unknown'));
+    return b;
+  }
+
+  function cell(cls, label, text) {
+    var td = el('td', cls);
+    td.setAttribute('data-label', label);
+    td.appendChild(el('span', 'val', text));
+    return td;
+  }
+
+  function renderBanner(data, reachable) {
+    var b = $('banner');
+    var t = $('banner-text');
+    var active = data.targets.filter(function (x) { return x.state !== 'paused'; });
+    var down = active.filter(function (x) { return x.state === 'down'; }).length;
+    var unknown = active.filter(function (x) { return x.state === 'unknown'; }).length;
+    var state, text;
+    if (!active.length) { state = 'none'; text = 'No targets are being monitored'; }
+    else if (down) { state = 'down'; text = down + ' of ' + active.length + ' target' + (active.length === 1 ? ' is' : 's are') + ' down'; }
+    else if (unknown) { state = 'unknown'; text = 'Waiting for first checks of ' + unknown + ' target' + (unknown === 1 ? '' : 's'); }
+    else { state = 'up'; text = active.length === 1 ? 'The only target is up' : 'All ' + active.length + ' targets are up'; }
+    b.setAttribute('data-state', reachable ? state : 'stale');
+    t.textContent = text;
+    $('updated').textContent = lastOk ? 'Updated ' + clock(lastOk) : '';
+  }
+
+  function renderRows(data) {
+    var rows = $('rows');
+    clear(rows);
+    var empty = $('empty');
+    clear(empty);
+    $('targets').hidden = !data.targets.length;
+    empty.hidden = !!data.targets.length;
+    if (!data.targets.length) {
+      empty.appendChild(el('p', null, 'No targets yet.'));
+      if (managed) {
+        var first = el('button', 'primary', 'Add your first target');
+        first.type = 'button';
+        first.addEventListener('click', function () { openForm(null); });
+        empty.appendChild(first);
+      } else {
+        empty.appendChild(el('p', 'hint', 'Add targets to the config file and restart.'));
+      }
+      return;
+    }
+    var showActions = managed && data.targets.some(function (x) { return x.source === 'ui'; });
+    $('th-actions').hidden = !showActions;
+    data.targets.forEach(function (t) {
+      var tr = el('tr');
+      tr.setAttribute('data-state', t.state);
+      var st = el('td', 'c-status');
+      st.appendChild(badge(t.state));
+      tr.appendChild(st);
+      var name = cell('c-name', 'Name', t.name);
+      if (t.state === 'down' && t.error) {
+        name.appendChild(el('span', 'errtext', 'Error: ' + t.error));
+        name.style.display = 'block';
+        name.firstChild.style.display = 'block';
+      }
+      tr.appendChild(name);
+      tr.appendChild(cell('', 'Type', t.type));
+      tr.appendChild(cell('nowrap', 'Source', t.source === 'config' ? 'config (read-only)' : t.source));
+      tr.appendChild(cell('num nowrap', 'Latency', t.latency_ms === null || t.latency_ms === undefined ? '-' : Math.round(t.latency_ms) + ' ms'));
+      tr.appendChild(cell('num nowrap', '24h uptime', t.uptime_24h === null || t.uptime_24h === undefined ? '-' : t.uptime_24h.toFixed(1) + '%'));
+      tr.appendChild(cell('nowrap', 'Last check', when(t.last_check)));
+      if (showActions) { tr.appendChild(actionsCell(t)); }
+      rows.appendChild(tr);
+    });
+  }
+
+
+  // ---- management ------------------------------------------------
+  var TOKEN_KEY = 'uptimewatch_token';
+  var editingId = null;
+  var managed = false;
+  var FIELD_IDS = {name: 'f-name', type: 'f-type', url: 'f-url', host: 'f-host', port: 'f-port',
+                   interval: 'f-interval', expected_status: 'f-status'};
+
+  function getToken() {
+    try { return sessionStorage.getItem(TOKEN_KEY) || ''; } catch (e) { return ''; }
+  }
+  function setToken(v) {
+    try { if (v) { sessionStorage.setItem(TOKEN_KEY, v); } else { sessionStorage.removeItem(TOKEN_KEY); } } catch (e) { /* ignore */ }
+  }
+
+  function askToken(message) {
+    return new Promise(function (resolve, reject) {
+      var panel = $('token-panel');
+      var input = $('f-token');
+      input.value = '';
+      $('token-msg').textContent = message || 'Needed once per browser session for changes.';
+      panel.hidden = false;
+      input.focus();
+      function done(fn, v) {
+        panel.removeEventListener('submit', onSubmit);
+        $('token-cancel').removeEventListener('click', onCancel);
+        panel.hidden = true;
+        fn(v);
+      }
+      function onSubmit(ev) {
+        ev.preventDefault();
+        if (!input.value) { $('token-msg').textContent = 'Enter the admin token.'; return; }
+        done(resolve, input.value);
+      }
+      function onCancel() { done(reject, new Error('cancelled')); }
+      panel.addEventListener('submit', onSubmit);
+      $('token-cancel').addEventListener('click', onCancel);
+    });
+  }
+
+  // Resolves {status, body}. Handles the one-time token prompt and 401 re-prompt.
+  function api(method, path, body, retryMsg) {
+    var token = getToken();
+    var have = token ? Promise.resolve(token) : askToken(retryMsg).then(function (t) { setToken(t); return t; });
+    return have.then(function (t) {
+      var opts = {method: method, headers: {'Authorization': 'Bearer ' + t}};
+      if (body !== undefined) {
+        opts.headers['Content-Type'] = 'application/json';
+        opts.body = JSON.stringify(body);
+      }
+      return fetch(path, opts);
+    }).then(function (r) {
+      if (r.status === 401) {
+        setToken('');
+        return api(method, path, body, 'Token rejected. Enter it again.');
+      }
+      if (r.status === 204) { return {status: 204, body: null}; }
+      return r.json().catch(function () { return {}; }).then(function (b) { return {status: r.status, body: b}; });
+    });
+  }
+
+  function showFieldErrors(fields, summary) {
+    Object.keys(FIELD_IDS).forEach(function (k) {
+      var err = $('e-' + k);
+      var input = $(FIELD_IDS[k]);
+      var msg = fields && fields[k];
+      err.hidden = !msg;
+      err.textContent = msg ? 'Error: ' + msg : '';
+      if (msg) { input.setAttribute('aria-invalid', 'true'); } else { input.removeAttribute('aria-invalid'); }
+    });
+    var fe = $('form-error');
+    fe.hidden = !summary;
+    fe.textContent = summary || '';
+  }
+
+  function syncType() {
+    var t = $('f-type').value;
+    var nodes = document.querySelectorAll('#target-form [data-for]');
+    for (var i = 0; i < nodes.length; i++) { nodes[i].hidden = nodes[i].getAttribute('data-for') !== t; }
+  }
+
+  function setBusy(busy) {
+    var form = $('target-form');
+    var els = form.querySelectorAll('input,select,button');
+    for (var i = 0; i < els.length; i++) { els[i].disabled = busy; }
+    var save = $('form-save');
+    if (busy) { save.setAttribute('aria-busy', 'true'); save.textContent = 'Saving...'; }
+    else { save.removeAttribute('aria-busy'); save.textContent = 'Save'; }
+  }
+
+  function openForm(target) {
+    editingId = target ? target.id : null;
+    $('form-title').textContent = target ? 'Edit target' : 'Add target';
+    $('f-name').value = target ? target.name : '';
+    $('f-type').value = target ? target.type : 'http';
+    $('f-url').value = target && target.url ? target.url : '';
+    $('f-host').value = target && target.host ? target.host : '';
+    $('f-port').value = target && target.port ? target.port : '';
+    $('f-interval').value = target ? target.interval : 60;
+    $('f-status').value = target && target.expected_status ? target.expected_status : 200;
+    showFieldErrors({}, '');
+    syncType();
+    $('target-form').hidden = false;
+    $('f-name').focus();
+  }
+
+  function closeForm() { $('target-form').hidden = true; editingId = null; }
+
+  function num(v) { return v === '' ? null : Number(v); }
+
+  function formBody() {
+    var type = $('f-type').value;
+    var body = {name: $('f-name').value, type: type, interval: num($('f-interval').value)};
+    if (type === 'http') {
+      body.url = $('f-url').value;
+      body.expected_status = num($('f-status').value);
+    } else {
+      body.host = $('f-host').value;
+      body.port = num($('f-port').value);
+    }
+    return body;
+  }
+
+  function submitForm(ev) {
+    ev.preventDefault();
+    showFieldErrors({}, '');
+    setBusy(true);
+    var path = editingId === null ? '/api/targets' : '/api/targets/' + editingId;
+    api(editingId === null ? 'POST' : 'PUT', path, formBody()).then(function (res) {
+      setBusy(false);
+      if (res.status === 200 || res.status === 201) { closeForm(); return refresh(); }
+      var b = res.body || {};
+      showFieldErrors(b.fields || {}, b.error || ('Request failed (' + res.status + ')'));
+    }).catch(function () {
+      setBusy(false);
+      showFieldErrors({}, 'Could not save: token entry was cancelled or the monitor is unreachable.');
+    });
+  }
+
+  function act(btn, fn) {
+    btn.setAttribute('aria-busy', 'true');
+    btn.disabled = true;
+    fn().then(function (res) {
+      if (res && res.status >= 400) { window.alert((res.body && res.body.error) || 'Request failed'); }
+      return refresh();
+    }).catch(function () { /* token prompt cancelled */ }).then(function () {
+      btn.removeAttribute('aria-busy');
+      btn.disabled = false;
+    });
+  }
+
+  function actionsCell(t) {
+    var td = el('td', 'actions-cell');
+    td.setAttribute('data-label', 'Actions');
+    if (t.source === 'ui') {
+      var box = el('div', 'actions');
+      var edit = el('button', null, 'Edit');
+      edit.type = 'button';
+      edit.setAttribute('aria-label', 'Edit ' + t.name);
+      edit.addEventListener('click', function () { openForm(t); });
+      var pause = el('button', null, t.paused ? 'Resume' : 'Pause');
+      pause.type = 'button';
+      pause.setAttribute('aria-label', (t.paused ? 'Resume ' : 'Pause ') + t.name);
+      pause.addEventListener('click', function () {
+        act(pause, function () { return api('PUT', '/api/targets/' + t.id, {paused: !t.paused}); });
+      });
+      var del = el('button', 'danger', 'Delete');
+      del.type = 'button';
+      del.setAttribute('aria-label', 'Delete ' + t.name);
+      del.addEventListener('click', function () {
+        if (!window.confirm('Delete ' + t.name + '?')) { return; }
+        act(del, function () { return api('DELETE', '/api/targets/' + t.id); });
+      });
+      box.appendChild(edit);
+      box.appendChild(pause);
+      box.appendChild(del);
+      td.appendChild(box);
+    }
+    return td;
+  }
+
+  function applyManagement(data) {
+    managed = !!data.management_enabled;
+    $('manage').hidden = !managed;
+    $('th-actions').hidden = !managed;
+    if (!managed) { closeForm(); $('token-panel').hidden = true; }
+  }
+
+  function wireManagement() {
+    $('add-btn').addEventListener('click', function () { openForm(null); });
+    $('f-type').addEventListener('change', syncType);
+    $('target-form').addEventListener('submit', submitForm);
+    $('form-cancel').addEventListener('click', closeForm);
+    syncType();
+  }
+
+  function render(data, reachable) {
+    applyManagement(data);
+    renderBanner(data, reachable);
+    var n = $('notice');
+    if (reachable) { n.hidden = true; n.textContent = ''; }
+    else {
+      n.hidden = false;
+      n.textContent = 'Cannot reach monitor.' + (lastOk ? ' Showing last known data from ' + clock(lastOk) + '.' : '');
+    }
+    renderRows(data);
+  }
+
+  function refresh() {
+    return fetch('/status', {cache: 'no-store'}).then(function (r) {
+      if (!r.ok) { throw new Error('status ' + r.status); }
+      return r.json();
+    }).then(function (data) {
+      lastData = data;
+      lastOk = new Date();
+      render(data, true);
+    }).catch(function () {
+      if (lastData) { render(lastData, false); }
+      else {
+        $('banner').setAttribute('data-state', 'stale');
+        $('banner-text').textContent = 'Cannot reach monitor';
+        var n = $('notice');
+        n.hidden = false;
+        n.textContent = 'Cannot reach monitor.';
+        clear($('rows'));
+      }
+    });
+  }
+
+  wireManagement();
+  refresh();
+  setInterval(refresh, REFRESH_MS);
+})();
+</script>
+</body>
+</html>

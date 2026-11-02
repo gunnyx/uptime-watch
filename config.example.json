@@ -1,0 +1,12 @@
+{
+  "database": "uptime.db",
+  "default_timeout": 10,
+  "retention_days": 30,
+  "discord_webhook_url": "",
+  "admin_token": "",
+  "server": {"host": "127.0.0.1", "port": 8080},
+  "targets": [
+    {"name": "site", "type": "http", "interval": 60, "url": "https://example.com", "expected_status": 200},
+    {"name": "db", "type": "tcp", "interval": 30, "host": "127.0.0.1", "port": 5432}
+  ]
+}

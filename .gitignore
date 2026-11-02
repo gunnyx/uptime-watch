@@ -1,0 +1,6 @@
+*.db
+*.db-wal
+*.db-shm
+config.json
+__pycache__/
+*.pyc

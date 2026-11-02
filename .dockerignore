@@ -1,0 +1,12 @@
+.git
+.claude
+.pipeline
+.specify
+specs
+tests
+__pycache__
+*.pyc
+*.db
+*.db-wal
+*.db-shm
+config.json
